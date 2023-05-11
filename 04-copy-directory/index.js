@@ -41,6 +41,37 @@ function copyDir() {
           }
         });
       }
+
+      // Удаление файлов из files-copy, если они удалены из files
+      fs.readdir(copyDir, (err, copiedFiles) => {
+        if (err) {
+          console.error(err);
+          return;
+        }
+
+        for (const copiedFile of copiedFiles) {
+          if (!files.includes(copiedFile)) {
+            const fileToRemove = path.join(copyDir, copiedFile);
+
+            fs.stat(fileToRemove, (err, fileStat) => {
+              if (err) {
+                console.error(err);
+                return;
+              }
+
+              if (fileStat.isFile()) {
+                fs.unlink(fileToRemove, (err) => {
+                  if (err) {
+                    console.error(err);
+                  }
+                });
+              } else if (fileStat.isDirectory()) {
+                removeDirRecursive(fileToRemove);
+              }
+            });
+          }
+        }
+      });
     });
   });
 }
@@ -81,6 +112,27 @@ function copyDirRecursive(src, dest) {
       }
     });
   });
+}
+
+function removeDirRecursive(dir) {
+  if (!fs.existsSync(dir)) {
+    return;
+  }
+
+  const files = fs.readdirSync(dir);
+
+  for (const file of files) {
+    const filePath = path.join(dir, file);
+    const fileStat = fs.statSync(filePath);
+
+    if (fileStat.isFile()) {
+      fs.unlinkSync(filePath);
+    } else if (fileStat.isDirectory()) {
+      removeDirRecursive(filePath);
+    }
+  }
+
+  fs.rmdirSync(dir);
 }
 
 copyDir();
